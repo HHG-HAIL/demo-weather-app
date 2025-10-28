@@ -7,7 +7,7 @@ describe('Alert Component - Smoke Tests', () => {
   test('renders without crashing with required props', () => {
     const mockOnClose = jest.fn();
     
-    render(
+    const { container } = render(
       <Alert 
         message="Test message" 
         type="error" 
@@ -15,8 +15,9 @@ describe('Alert Component - Smoke Tests', () => {
       />
     );
     
-    // If we get here without throwing, the component rendered successfully
-    expect(true).toBe(true);
+    // Verify the alert div is rendered
+    const alertDiv = container.querySelector('.alert');
+    expect(alertDiv).toBeInTheDocument();
   });
 
   test('displays message text', () => {
@@ -45,8 +46,9 @@ describe('Alert Component - Smoke Tests', () => {
       />
     );
     
-    const closeButton = screen.getByRole('button', { name: /✖/i });
+    const closeButton = screen.getByRole('button');
     expect(closeButton).toBeInTheDocument();
+    expect(closeButton).toHaveClass('close-button');
   });
 
   test('renders with error type', () => {
