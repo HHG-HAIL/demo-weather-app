@@ -32,7 +32,7 @@ jest.mock('../../MapComponent', () => {
 // Mock react-select for simplicity in tests
 jest.mock('react-select', () => {
   return function MockSelect({ options, value, onChange }) {
-    if (!options || !Array.isArray(options)) {
+    if (!options || !Array.isArray(options) || options.length === 0) {
       return <select data-testid="unit-dropdown"></select>;
     }
     
@@ -41,8 +41,8 @@ jest.mock('react-select', () => {
         data-testid="unit-dropdown"
         value={value?.value}
         onChange={(e) => {
-          if (onChange) {
-            const selected = options.find(opt => opt.value === e.target.value);
+          const selected = options.find(opt => opt.value === e.target.value);
+          if (selected && onChange) {
             onChange(selected);
           }
         }}
