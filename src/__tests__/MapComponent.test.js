@@ -57,6 +57,13 @@ describe('MapComponent', () => {
     lng: -74.0060,
   };
 
+  // Helper function to reload MapComponent module
+  const reloadMapComponent = () => {
+    jest.isolateModules(() => {
+      require('../MapComponent');
+    });
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -178,7 +185,7 @@ describe('MapComponent', () => {
 
     test('should handle negative coordinates', () => {
       // Arrange
-      const negativeProps = { lat: -33.8688, lng: -151.2093 }; // Sydney (negative coordinates)
+      const negativeProps = { lat: -33.8688, lng: 151.2093 }; // Sydney
 
       // Act
       render(<MapComponent {...negativeProps} />);
@@ -273,9 +280,7 @@ describe('MapComponent', () => {
       
       // Act
       // Re-import the component to trigger the icon configuration
-      jest.isolateModules(() => {
-        require('../MapComponent');
-      });
+      reloadMapComponent();
 
       // Assert
       expect(L.Icon.Default.mergeOptions).toHaveBeenCalled();
@@ -290,9 +295,7 @@ describe('MapComponent', () => {
       const L = require('leaflet');
       
       // Act
-      jest.isolateModules(() => {
-        require('../MapComponent');
-      });
+      reloadMapComponent();
 
       // Assert
       const callArgs = L.Icon.Default.mergeOptions.mock.calls[0][0];
