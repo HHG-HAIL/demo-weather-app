@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Alert Component Snapshot Tests matches snapshot for error alert 1`] = `
+<div
+  class="alert error"
+>
+  <p>
+    Error message
+  </p>
+   
+  <button
+    class="close-button"
+  >
+    ✖
+  </button>
+</div>
+`;
+
+exports[`Alert Component Snapshot Tests matches snapshot for success alert 1`] = `
+<div
+  class="alert success"
+>
+  <p>
+    Success message
+  </p>
+   
+  <button
+    class="close-button"
+  >
+    ✖
+  </button>
+</div>
+`;
