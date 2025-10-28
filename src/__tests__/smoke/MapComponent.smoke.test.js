@@ -29,7 +29,7 @@ describe('MapComponent - Smoke Tests', () => {
     expect(container.querySelector('[data-testid="map-container"]')).toBeInTheDocument();
   });
 
-  test('Map components are present', () => {
+  test('All map sub-components render correctly', () => {
     const { container } = render(<MapComponent lat={37.7749} lng={-122.4194} />);
     expect(container.querySelector('[data-testid="map-container"]')).toBeInTheDocument();
     expect(container.querySelector('[data-testid="tile-layer"]')).toBeInTheDocument();

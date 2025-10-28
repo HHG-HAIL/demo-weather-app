@@ -34,9 +34,11 @@ describe('App Component - Smoke Tests', () => {
 
   test('Date display is visible', () => {
     render(<App />);
-    // The date component renders the current date in a specific element
-    const dateElements = screen.getAllByText(new RegExp(new Date().getFullYear().toString()));
-    // Find the one in the date div (should be in a <p> tag)
+    // The date component renders in a div with class "date" containing a <p> tag
+    // Look for a date pattern that includes month name and day
+    const datePattern = /\w+,\s+\w+\s+\d{1,2},\s+\d{4}/; // e.g., "Tuesday, October 28, 2025"
+    const dateElements = screen.getAllByText(datePattern);
+    // Find the one in the date display (should be in a <p> tag, not in footer)
     const dateElement = dateElements.find(el => el.tagName === 'P');
     expect(dateElement).toBeInTheDocument();
     expect(dateElement).toBeVisible();
