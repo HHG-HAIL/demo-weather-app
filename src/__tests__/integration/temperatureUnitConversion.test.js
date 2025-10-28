@@ -127,6 +127,10 @@ describe('Temperature Unit Conversion Integration Tests', () => {
 
       // Act - Step 6: User searches again
       axios.get.mockResolvedValueOnce(mockWeatherDataFahrenheit);
+      // Wait for input to be cleared after previous search
+      await waitFor(() => {
+        expect(searchInput.value).toBe('');
+      });
       await userEvent.type(searchInput, 'London');
       await userEvent.click(searchButton);
 
@@ -201,6 +205,10 @@ describe('Temperature Unit Conversion Integration Tests', () => {
 
       // Act - Step 6: User searches again
       axios.get.mockResolvedValueOnce(mockWeatherDataCelsius);
+      // Wait for input to be cleared after previous search
+      await waitFor(() => {
+        expect(searchInput.value).toBe('');
+      });
       await userEvent.type(searchInput, 'London');
       await userEvent.click(searchButton);
 
@@ -279,6 +287,10 @@ describe('Temperature Unit Conversion Integration Tests', () => {
       });
 
       // Act - Second search (with the same unit)
+      // Wait for input to be cleared after previous search
+      await waitFor(() => {
+        expect(searchInput.value).toBe('');
+      });
       await userEvent.type(searchInput, 'Paris');
       await userEvent.click(searchButton);
 
