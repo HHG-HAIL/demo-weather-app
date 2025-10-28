@@ -166,11 +166,12 @@ describe('Alert Component', () => {
       const mockOnClose = jest.fn();
 
       // Act
-      render(<Alert message={message} type="error" onClose={mockOnClose} />);
+      const { container } = render(<Alert message={message} type="error" onClose={mockOnClose} />);
 
       // Assert
-      const paragraph = screen.getByText('', { selector: 'p' });
+      const paragraph = container.querySelector('p');
       expect(paragraph).toBeInTheDocument();
+      expect(paragraph.textContent).toBe('');
     });
 
     test('renders with undefined type', () => {
@@ -206,14 +207,17 @@ describe('Alert Component', () => {
 
     test('renders with long message', () => {
       // Arrange
-      const longMessage = 'This is a very long message that should still be displayed correctly in the alert component without any issues. '.repeat(5);
+      const baseMessage = 'This is a very long message that should still be displayed correctly in the alert component without any issues. ';
+      const longMessage = baseMessage.repeat(5);
       const mockOnClose = jest.fn();
 
       // Act
-      render(<Alert message={longMessage} type="error" onClose={mockOnClose} />);
+      const { container } = render(<Alert message={longMessage} type="error" onClose={mockOnClose} />);
 
       // Assert
-      expect(screen.getByText(longMessage.trim())).toBeInTheDocument();
+      const paragraph = container.querySelector('p');
+      expect(paragraph).toBeInTheDocument();
+      expect(paragraph.textContent).toBe(longMessage);
     });
 
     test('renders with special characters in message', () => {
