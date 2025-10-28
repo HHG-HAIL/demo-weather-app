@@ -35,20 +35,6 @@ jest.mock('leaflet', () => ({
 jest.mock('leaflet/dist/leaflet.css', () => ({}));
 
 describe('MapComponent - Smoke Tests', () => {
-  // Suppress console errors during tests
-  const originalError = console.error;
-  beforeAll(() => {
-    console.error = jest.fn();
-  });
-
-  afterAll(() => {
-    console.error = originalError;
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   test('renders without crashing with valid coordinates', () => {
     const { container } = render(<MapComponent lat={40.7128} lng={-74.0060} />);
     expect(container).toBeInTheDocument();
@@ -106,7 +92,9 @@ describe('MapComponent - Smoke Tests', () => {
   });
 
   test('no console errors when rendering with mocks', () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     render(<MapComponent lat={40.7128} lng={-74.0060} />);
-    expect(console.error).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 });
