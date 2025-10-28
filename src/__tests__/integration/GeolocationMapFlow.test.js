@@ -53,7 +53,6 @@ jest.mock('axios', () => ({
   default: {
     get: jest.fn(),
   },
-  get: jest.fn(),
 }));
 
 // Mock react-loader-spinner
@@ -338,7 +337,7 @@ describe('Geolocation and Map Display Flow Integration Tests', () => {
       });
 
       // Verify the close button from Alert component works
-      const closeButton = screen.getByText('✖');
+      const closeButton = screen.getByRole('button', { name: /✖|close/i });
       expect(closeButton).toBeInTheDocument();
       
       fireEvent.click(closeButton);
