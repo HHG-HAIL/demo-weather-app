@@ -14,59 +14,59 @@ jobs:
                -d '{"query":"{ viewer { login } }"}' \
                https://api.github.com/graphql
       
-      - name: Check if Copilot is available
+      - name: Check current assignees before
         env:
           TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
-          echo "Checking if copilot-swe-agent is available in repository..."
-          RESPONSE=$(curl -s -H "Authorization: bearer $TOKEN" \
-               -H "Content-Type: application/json" \
-               -d '{"query":"{ repository(owner: \"${{ github.repository_owner }}\", name: \"${{ github.event.repository.name }}\") { suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) { nodes { login __typename } } } }"}' \
-               https://api.github.com/graphql)
-          
-          echo "Available assignees:"
-          echo "$RESPONSE" | jq -r '.data.repository.suggestedActors.nodes[] | "\(.login) (\(.__typename))"'
-          
-          if echo "$RESPONSE" | jq -e '.data.repository.suggestedActors.nodes[] | select(.login == "copilot-swe-agent")' > /dev/null; then
-            echo "✅ copilot-swe-agent is available"
-          else
-            echo "❌ copilot-swe-agent is NOT available in this repository"
-            echo "You may need to enable Copilot Workspace or Copilot coding agent for this repository"
-            exit 1
-          fi
-      
-      - name: Assign Copilot to Issue via REST API
-        env:
-          TOKEN: ${{ secrets.COPILOT_PAT }}
-        run: |
-          echo "Attempting to assign copilot-swe-agent to issue 31..."
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            -H "Authorization: token $TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/issues/31/assignees \
-            -d '{"assignees":["copilot-swe-agent"]}')
-          
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-          
-          echo "HTTP Status Code: $HTTP_CODE"
-          echo "Response Body:"
-          echo "$BODY" | jq '.'
-          
-          if [ "$HTTP_CODE" = "201" ]; then
-            echo "✅ Successfully assigned copilot-swe-agent"
-          else
-            echo "❌ Assignment failed with status code $HTTP_CODE"
-            exit 1
-          fi
-      
-      - name: Verify Assignment
-        env:
-          TOKEN: ${{ secrets.COPILOT_PAT }}
-        run: |
-          echo "Current assignees on issue 31:"
+          echo "Assignees BEFORE assignment:"
           curl -s -H "Authorization: token $TOKEN" \
                -H "Accept: application/vnd.github+json" \
                https://api.github.com/repos/${{ github.repository }}/issues/31 | \
           jq '.assignees'
+      
+      - name: Assign using GraphQL (alternative method)
+        env:
+          TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          echo "Getting Bot ID and Issue ID..."
+          
+          # Get Bot ID
+          BOT_RESPONSE=$(curl -s -H "Authorization: bearer $TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"query":"{ repository(owner: \"${{ github.repository_owner }}\", name: \"${{ github.event.repository.name }}\") { suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) { nodes { login __typename ... on Bot { id } } } } }"}' \
+               https://api.github.com/graphql)
+          
+          BOT_ID=$(echo "$BOT_RESPONSE" | jq -r '.data.repository.suggestedActors.nodes[] | select(.login == "copilot-swe-agent") | .id')
+          echo "Bot ID: $BOT_ID"
+          
+          # Get Issue ID
+          ISSUE_RESPONSE=$(curl -s -H "Authorization: bearer $TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"query":"{ repository(owner: \"${{ github.repository_owner }}\", name: \"${{ github.event.repository.name }}\") { issue(number: 31) { id title } } }"}' \
+               https://api.github.com/graphql)
+          
+          ISSUE_ID=$(echo "$ISSUE_RESPONSE" | jq -r '.data.repository.issue.id')
+          echo "Issue ID: $ISSUE_ID"
+          
+          # Assign using addAssigneesToAssignable mutation
+          echo "Attempting assignment with addAssigneesToAssignable..."
+          ASSIGN_RESPONSE=$(curl -s -H "Authorization: bearer $TOKEN" \
+               -H "Content-Type: application/json" \
+               -d "{\"query\":\"mutation { addAssigneesToAssignable(input: {assignableId: \\\"$ISSUE_ID\\\", assigneeIds: [\\\"$BOT_ID\\\"]}) { assignable { ... on Issue { id title assignees(first: 10) { nodes { login } } } } } }\"}" \
+               https://api.github.com/graphql)
+          
+          echo "Assignment response:"
+          echo "$ASSIGN_RESPONSE" | jq '.'
+      
+      - name: Wait and check assignees after
+        env:
+          TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          echo "Waiting 3 seconds for assignment to propagate..."
+          sleep 3
+          
+          echo "Assignees AFTER assignment:"
+          curl -s -H "Authorization: token $TOKEN" \
+               -H "Accept: application/vnd.github+json" \
+               https://api.github.com/repos/${{ github.repository }}/issues/31 | \
+          jq '.assignees[] | {login: .login, type: .type}'
