@@ -23,7 +23,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh copilot assign ${{ matrix.issue }}
+          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
           
           # Wait up to 30 minutes for PR creation
           for i in {1..60}; do
@@ -61,7 +61,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh copilot assign ${{ matrix.issue }}
+          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
           
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
@@ -96,7 +96,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh copilot assign ${{ matrix.issue }}
+          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
           
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
@@ -133,7 +133,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh copilot assign ${{ matrix.issue }}
+          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
           
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
