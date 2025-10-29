@@ -23,7 +23,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
+            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
           
           # Wait up to 30 minutes for PR creation
           for i in {1..60}; do
@@ -61,7 +66,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
+            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
           
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
@@ -96,7 +106,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
+            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
           
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
@@ -133,7 +148,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
+            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
           
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
