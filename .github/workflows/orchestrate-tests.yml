@@ -14,47 +14,8 @@ jobs:
                -d '{"query":"{ viewer { login } }"}' \
                https://api.github.com/graphql
       
-      - name: Get Copilot Bot ID
-        id: get-bot-id
-        env:
-          TOKEN: ${{ secrets.COPILOT_PAT }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          RESPONSE=$(curl -s -H "Authorization: bearer $TOKEN" \
-               -H "Content-Type: application/json" \
-               -d "{\"query\":\"{ repository(owner: \\\"$REPO_OWNER\\\", name: \\\"$REPO_NAME\\\") { suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) { nodes { login __typename ... on Bot { id } } } } }\"}" \
-               https://api.github.com/graphql)
-          
-          echo "Response: $RESPONSE"
-          BOT_ID=$(echo $RESPONSE | jq -r '.data.repository.suggestedActors.nodes[] | select(.login == "copilot-swe-agent") | .id')
-          echo "bot_id=$BOT_ID" >> $GITHUB_OUTPUT
-          echo "Found Copilot Bot ID: $BOT_ID"
-      
-      - name: Get Issue ID
-        id: get-issue-id
-        env:
-          TOKEN: ${{ secrets.COPILOT_PAT }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          RESPONSE=$(curl -s -H "Authorization: bearer $TOKEN" \
-               -H "Content-Type: application/json" \
-               -d "{\"query\":\"{ repository(owner: \\\"$REPO_OWNER\\\", name: \\\"$REPO_NAME\\\") { issue(number: 31) { id title } } }\"}" \
-               https://api.github.com/graphql)
-          
-          echo "Response: $RESPONSE"
-          ISSUE_ID=$(echo $RESPONSE | jq -r '.data.repository.issue.id')
-          echo "issue_id=$ISSUE_ID" >> $GITHUB_OUTPUT
-          echo "Found Issue ID: $ISSUE_ID"
-      
       - name: Assign Copilot to Issue
         env:
-          TOKEN: ${{ secrets.COPILOT_PAT }}
-          ISSUE_ID: ${{ steps.get-issue-id.outputs.issue_id }}
-          BOT_ID: ${{ steps.get-bot-id.outputs.bot_id }}
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
-          curl -H "Authorization: bearer $TOKEN" \
-               -H "Content-Type: application/json" \
-               -d "{\"query\":\"mutation { replaceActorsForAssignable(input: {assignableId: \\\"$ISSUE_ID\\\", actorIds: [\\\"$BOT_ID\\\"]}) { assignable { ... on Issue { id title assignees(first: 10) { nodes { login } } } } } }\"}" \
-               https://api.github.com/graphql
+          gh issue edit 31 --add-assignee copilot-swe-agent --repo ${{ github.repository }}
