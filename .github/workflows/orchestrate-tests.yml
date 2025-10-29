@@ -14,8 +14,13 @@ jobs:
                -d '{"query":"{ viewer { login } }"}' \
                https://api.github.com/graphql
       
-      - name: Assign Copilot to Issue
+      - name: Assign Copilot to Issue via REST API
         env:
-          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+          TOKEN: ${{ secrets.COPILOT_PAT }}
         run: |
-          gh issue edit 31 --add-assignee copilot-swe-agent --repo ${{ github.repository }}
+          curl -X POST \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/issues/31/assignees \
+            -d '{"assignees":["copilot-swe-agent"]}'
