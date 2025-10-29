@@ -18,19 +18,16 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - name: Assign to Copilot & Wait for PR
+      - name: Trigger Copilot & Wait for PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
-            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
+          echo "🤖 Triggering Copilot for issue #${{ matrix.issue }}..."
+          gh issue comment ${{ matrix.issue }} --body "@copilot"
+          echo "✅ Copilot notified via comment"
           
           # Wait up to 30 minutes for PR creation
+          echo "⏳ Waiting for Copilot to create PR..."
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
             if [ ! -z "$pr" ]; then
@@ -40,10 +37,10 @@ jobs:
               echo "✅ Stage 1 issue #${{ matrix.issue }} complete"
               exit 0
             fi
-            echo "⏳ Waiting for PR... ($i/60)"
+            echo "⏳ Still waiting... ($i/60)"
             sleep 30
           done
-          echo "⚠️ Timeout waiting for PR"
+          echo "⚠️ Timeout: No PR created after 30 minutes"
 
   # STAGE 2: Second batch (runs AFTER stage-1 completes, parallel within stage)
   # These issues depend on stage-1 being merged to avoid conflicts
@@ -61,18 +58,15 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - name: Assign to Copilot & Wait for PR
+      - name: Trigger Copilot & Wait for PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
-            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
+          echo "🤖 Triggering Copilot for issue #${{ matrix.issue }}..."
+          gh issue comment ${{ matrix.issue }} --body "@copilot"
+          echo "✅ Copilot notified via comment"
           
+          echo "⏳ Waiting for Copilot to create PR..."
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
             if [ ! -z "$pr" ]; then
@@ -81,10 +75,10 @@ jobs:
               echo "✅ Stage 2 issue #${{ matrix.issue }} complete"
               exit 0
             fi
-            echo "⏳ Waiting for PR... ($i/60)"
+            echo "⏳ Still waiting... ($i/60)"
             sleep 30
           done
-          echo "⚠️ Timeout waiting for PR"
+          echo "⚠️ Timeout: No PR created after 30 minutes"
 
   # STAGE 3: Third batch (runs AFTER stage-2 completes, parallel within stage)
   stage-3:
@@ -101,18 +95,15 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - name: Assign to Copilot & Wait for PR
+      - name: Trigger Copilot & Wait for PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
-            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
+          echo "🤖 Triggering Copilot for issue #${{ matrix.issue }}..."
+          gh issue comment ${{ matrix.issue }} --body "@copilot"
+          echo "✅ Copilot notified via comment"
           
+          echo "⏳ Waiting for Copilot to create PR..."
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
             if [ ! -z "$pr" ]; then
@@ -121,10 +112,10 @@ jobs:
               echo "✅ Stage 3 issue #${{ matrix.issue }} complete"
               exit 0
             fi
-            echo "⏳ Waiting for PR... ($i/60)"
+            echo "⏳ Still waiting... ($i/60)"
             sleep 30
           done
-          echo "⚠️ Timeout waiting for PR"
+          echo "⚠️ Timeout: No PR created after 30 minutes"
 
   # STAGE 4: Final batch (runs AFTER stage-3 completes, parallel within stage)
   # NOTE: This stage is currently disabled (no issues assigned)
@@ -143,18 +134,15 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - name: Assign to Copilot & Wait for PR
+      - name: Trigger Copilot & Wait for PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
-            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
+          echo "🤖 Triggering Copilot for issue #${{ matrix.issue }}..."
+          gh issue comment ${{ matrix.issue }} --body "@copilot"
+          echo "✅ Copilot notified via comment"
           
+          echo "⏳ Waiting for Copilot to create PR..."
           for i in {1..60}; do
             pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
             if [ ! -z "$pr" ]; then
@@ -163,10 +151,10 @@ jobs:
               echo "✅ Stage 4 issue #${{ matrix.issue }} complete"
               exit 0
             fi
-            echo "⏳ Waiting for PR... ($i/60)"
+            echo "⏳ Still waiting... ($i/60)"
             sleep 30
           done
-          echo "⚠️ Timeout waiting for PR"
+          echo "⚠️ Timeout: No PR created after 30 minutes"
 
   # Summary report
   summary:
