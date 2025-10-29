@@ -112,17 +112,19 @@ jobs:
           echo "⚠️ Timeout waiting for PR"
 
   # STAGE 4: Final batch (runs AFTER stage-3 completes, parallel within stage)
+  # NOTE: This stage is currently disabled (no issues assigned)
+  # To enable: Replace the empty array with issue numbers like [25, 26]
   stage-4:
     name: "Stage 4 - Issue #${{ matrix.issue }}"
     runs-on: ubuntu-latest
     needs: stage-3  # Wait for all stage-3 jobs to complete
-    if: always()
+    if: false  # Disabled when no stage-4 issues exist
     strategy:
       matrix:
         # REPLACE_STAGE_4: AI replaces this with issue numbers for stage 4
         # Example: issue: [25, 26]
         # Use empty array [] if no stage-4 issues
-        issue: []
+        issue: [0]  # Placeholder (job is disabled via if: false)
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
