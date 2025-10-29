@@ -21,9 +21,9 @@ jobs:
         run: |
           ISSUE_NUMBER="31"
           
-          echo "🤖 Assigning Copilot agent to issue #$ISSUE_NUMBER"
+          echo "🤖 Assigning Copilot to issue #$ISSUE_NUMBER"
           
-          # Assign the agent
-          gh copilot agent add $ISSUE_NUMBER
+          # Assign Copilot as assignee to the issue
+          gh issue edit $ISSUE_NUMBER --add-assignee "@copilot"
           
-          echo "✅ Agent assigned successfully!"
+          echo "✅ Copilot assigned successfully!"
