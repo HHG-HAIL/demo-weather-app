@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { MagnifyingGlass } from "react-loader-spinner";
 import Alert from "./Alert";
@@ -106,11 +106,6 @@ function App() {
     }
   }, [userLocation]);
 
-  // Memoize expensive date formatting
-  const formattedDate = useMemo(() => {
-    return new Date().toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  }, []);
-  
   const handleLocationChange = useCallback((event) => {
     setLocation(event.target.value);
   }, []);
@@ -149,7 +144,7 @@ function App() {
       </div>
 
       <div className="date">
-        <p> {formattedDate}</p>
+        <p> {new Date().toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
 
       {data ?
