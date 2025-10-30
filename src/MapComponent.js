@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -11,14 +11,20 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png'
 });
 
+// Move static style outside component
+const mapStyle = { height: '300px', width: '300px' };
+
 const MapComponent = ({ lat, lng }) => {
+    // Memoize position to avoid recreating array on every render
+    const position = useMemo(() => [lat, lng], [lat, lng]);
+    
     return (
-        <MapContainer center={[lat, lng]} zoom={13} style={{ height: '300px', width: '300px' }}>
+        <MapContainer center={position} zoom={13} style={mapStyle}>
             <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            <Marker position={[lat, lng]}>
+            <Marker position={position}>
                 <Popup>
                     You are here.
                 </Popup>
@@ -27,4 +33,4 @@ const MapComponent = ({ lat, lng }) => {
     );
 };
 
-export default MapComponent;
+export default React.memo(MapComponent);
