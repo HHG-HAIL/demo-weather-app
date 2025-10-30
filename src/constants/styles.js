@@ -9,7 +9,7 @@ export const customSelectStyles = {
     borderRadius: "25px",
     padding: ".2rem .5rem",
   }),
-  option: (provided, state) => ({
+  option: (provided) => ({
     ...provided,
     backgroundColor: "white",
     color: "black",
