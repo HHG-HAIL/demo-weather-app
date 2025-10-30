@@ -11,4 +11,4 @@ const Alert = ({ message, type, onClose }) => {
   );
 };
 
-export default Alert;
+export default React.memo(Alert);
