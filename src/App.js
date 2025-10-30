@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { MagnifyingGlass } from "react-loader-spinner";
 import Alert from "./Alert";
@@ -7,10 +7,38 @@ import MapComponent from "./MapComponent";
 import { AwesomeButton } from "react-awesome-button";
 import 'react-awesome-button/dist/styles.css';
 
+const API_KEY = '21571e236ae1e7500c50aabca16ad13c';
+
+// Move static configurations outside component to avoid recreation
+const unitOptions = [
+  { value: 'metric', label: 'Celsius (°C)' },
+  { value: 'imperial', label: 'Fahrenheit (°F)' },
+];
+
+const mapButtonStyle = { position: 'fixed', top: '1rem', right: '1rem' };
+const searchButtonStyle = { marginLeft: '1rem' };
+
+// Move Select component styles outside to avoid recreation
+const selectStyles = {
+  control: provided => ({
+    ...provided,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    border: "1px solid rgba(255, 255, 255, 0.8)",
+    borderRadius: "25px",
+    padding: ".2rem .5rem",
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: "white",
+    color: "black",
+  }), 
+  singleValue: (provided) => ({
+    ...provided,
+    color: "#ffffff",
+  })
+};
 
 function App() {
-  const API_KEY = '21571e236ae1e7500c50aabca16ad13c';
-
   const [data, setData] = useState('');
   const [location, setLocation] = useState('');
   const [unit, setUnit] = useState('metric');
@@ -18,23 +46,20 @@ function App() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
-  const handleUnitChange = (selectedOption) => {
+  
+  const handleUnitChange = useCallback((selectedOption) => {
     setUnit(selectedOption.value);
     setSymbol(selectedOption.value === 'metric' ? '°C' : '°F');
     setData(null);
-  };
-
-  const unitOptions = [
-    { value: 'metric', label: 'Celsius (°C)' },
-    { value: 'imperial', label: 'Fahrenheit (°F)' },
-  ];
+  }, []);
 
   // NOTE : Fatch data from OpenWeatherMap third party API.Constrected request url with (location, api key,unit).
   // NOTE : For more about Api EndPoint and Methods see documentation (https://openweathermap.org/api)
 
-  const url = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${API_KEY}&units=${unit}`;
-
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
+    if (!location.trim()) return;
+    
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${API_KEY}&units=${unit}`;
     setIsLoading(true);
     axios.get(url).then(response => {
       setData(response?.data);
@@ -50,15 +75,15 @@ function App() {
           setError(null);
         }, 3000);
       });
-  }
-  const searchLocation = (event) => {
+  }, [location, unit]);
+  
+  const searchLocation = useCallback((event) => {
     if (event.key === 'Enter') {
       handleSearch();
     }
-  };
+  }, [handleSearch]);
 
-  const getUserLocation = () => {
-
+  const getUserLocation = useCallback(() => {
     if (userLocation) {
       setUserLocation(null);
       return;
@@ -79,7 +104,13 @@ function App() {
     } else {
       setError('Geolocation is not supported by this browser.');
     }
-  };
+  }, [userLocation]);
+
+  const handleLocationChange = useCallback((event) => {
+    setLocation(event.target.value);
+  }, []);
+  
+  const clearError = useCallback(() => setError(null), []);
 
   return (
     <div className="app">
@@ -96,18 +127,18 @@ function App() {
         <Alert
           message={error}
           type="error"
-          onClose={() => setError(null)}
+          onClose={clearError}
         />
       )}
       <div className="search">
         <input
           value={location}
-          onChange={(event) => setLocation(event.target.value)}
+          onChange={handleLocationChange}
           onKeyPress={searchLocation}
           placeholder="Search Location"
           type="text"
         />
-        <AwesomeButton style={{ marginLeft: '1rem' }} type="danger" onPress={() => handleSearch()}>
+        <AwesomeButton style={searchButtonStyle} type="danger" onPress={handleSearch}>
           {'Search'}
         </AwesomeButton>
       </div>
@@ -160,27 +191,11 @@ function App() {
           value={unitOptions.find(option => option.value === unit)}
           onChange={handleUnitChange}
           className="custom-select"
-          styles={{
-            control: provided => ({
-              ...provided,
-              backgroundColor: "rgba(0,0,0,0.1)",
-              border: "1px solid rgba(255, 255, 255, 0.8)",
-              borderRadius: "25px",
-              padding: ".2rem .5rem",
-            }),
-            option: (provided, state) => ({
-              ...provided,
-              backgroundColor: "white",
-              color: "black",
-            }), singleValue: (provided) => ({
-              ...provided,
-              color: "#ffffff",
-            })
-          }}
+          styles={selectStyles}
         />
       </div>
 
-      <div style={{ position: 'fixed', top: '1rem', right: '1rem' }}>
+      <div style={mapButtonStyle}>
         <AwesomeButton style={{ marginBottom: '1rem' }} type="primary" onPress={getUserLocation}>
           {userLocation ? 'Close Map' : 'Open Map'}
         </AwesomeButton>
