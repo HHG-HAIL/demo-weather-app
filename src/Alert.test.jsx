@@ -161,19 +161,21 @@ describe('Alert Component', () => {
       expect(alertDiv).toBeInTheDocument();
     });
 
-    test('handles different alert types correctly', () => {
+    test.each([
+      ['error'],
+      ['success'],
+      ['warning'],
+      ['info']
+    ])('handles %s alert type correctly', (type) => {
       // Arrange
       const message = 'Multi-type test';
-      const types = ['error', 'success', 'warning', 'info'];
       
-      types.forEach(type => {
-        // Act
-        const { container } = render(<Alert message={message} type={type} onClose={() => {}} />);
-        
-        // Assert
-        const alertDiv = container.querySelector(`.alert.${type}`);
-        expect(alertDiv).toBeInTheDocument();
-      });
+      // Act
+      const { container } = render(<Alert message={message} type={type} onClose={() => {}} />);
+      
+      // Assert
+      const alertDiv = container.querySelector(`.alert.${type}`);
+      expect(alertDiv).toBeInTheDocument();
     });
 
     test('handles undefined type prop', () => {
