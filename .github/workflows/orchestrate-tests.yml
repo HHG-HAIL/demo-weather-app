@@ -1,0 +1,282 @@
+name: Orchestrate Test Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage_1_issues:
+        description: 'Stage 1 issue numbers (can run in parallel) - JSON array format, e.g., [1, 2, 3]'
+        required: false
+        default: 'REPLACE_STAGE_1_ISSUES'
+      stage_2_issues:
+        description: 'Stage 2 issue numbers (depend on stage 1) - JSON array format, e.g., [4, 5]'
+        required: false
+        default: 'REPLACE_STAGE_2_ISSUES'
+      stage_3_issues:
+        description: 'Stage 3 issue numbers (depend on stage 2) - JSON array format, e.g., [6]'
+        required: false
+        default: 'REPLACE_STAGE_3_ISSUES'
+      stage_4_issues:
+        description: 'Stage 4 issue numbers (depend on stage 3) - JSON array format, e.g., [7]'
+        required: false
+        default: 'REPLACE_STAGE_4_ISSUES'
+
+jobs:
+  stage-1:
+    name: Process Stage 1 Issues
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.stage_1_issues != 'REPLACE_STAGE_1_ISSUES' && github.event.inputs.stage_1_issues != '[]' }}
+    strategy:
+      matrix:
+        issue: ${{ fromJson(github.event.inputs.stage_1_issues) }}
+      max-parallel: 10
+    steps:
+      - name: Assign Copilot to Issue ${{ matrix.issue }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            console.log(`Assigning @copilot to issue #${issueNumber}`);
+            
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: ['copilot']
+              });
+              console.log(`Successfully assigned @copilot to issue #${issueNumber}`);
+            } catch (error) {
+              console.error(`Failed to assign @copilot to issue #${issueNumber}: ${error.message}`);
+              throw error;
+            }
+
+      - name: Wait for Issue Resolution
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+            const checkInterval = 30 * 1000; // 30 seconds
+            const startTime = Date.now();
+            
+            console.log(`Waiting for issue #${issueNumber} to be closed...`);
+            
+            while (Date.now() - startTime < maxWaitTime) {
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+              
+              if (issue.state === 'closed') {
+                console.log(`Issue #${issueNumber} has been closed!`);
+                return;
+              }
+              
+              console.log(`Issue #${issueNumber} is still open. Waiting...`);
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
+            }
+            
+            throw new Error(`Timeout: Issue #${issueNumber} was not closed within 30 minutes`);
+
+  stage-2:
+    name: Process Stage 2 Issues
+    runs-on: ubuntu-latest
+    needs: stage-1
+    if: ${{ always() && github.event.inputs.stage_2_issues != 'REPLACE_STAGE_2_ISSUES' && github.event.inputs.stage_2_issues != '[]' }}
+    strategy:
+      matrix:
+        issue: ${{ fromJson(github.event.inputs.stage_2_issues) }}
+      max-parallel: 10
+    steps:
+      - name: Assign Copilot to Issue ${{ matrix.issue }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            console.log(`Assigning @copilot to issue #${issueNumber}`);
+            
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: ['copilot']
+              });
+              console.log(`Successfully assigned @copilot to issue #${issueNumber}`);
+            } catch (error) {
+              console.error(`Failed to assign @copilot to issue #${issueNumber}: ${error.message}`);
+              throw error;
+            }
+
+      - name: Wait for Issue Resolution
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+            const checkInterval = 30 * 1000; // 30 seconds
+            const startTime = Date.now();
+            
+            console.log(`Waiting for issue #${issueNumber} to be closed...`);
+            
+            while (Date.now() - startTime < maxWaitTime) {
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+              
+              if (issue.state === 'closed') {
+                console.log(`Issue #${issueNumber} has been closed!`);
+                return;
+              }
+              
+              console.log(`Issue #${issueNumber} is still open. Waiting...`);
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
+            }
+            
+            throw new Error(`Timeout: Issue #${issueNumber} was not closed within 30 minutes`);
+
+  stage-3:
+    name: Process Stage 3 Issues
+    runs-on: ubuntu-latest
+    needs: stage-2
+    if: ${{ always() && github.event.inputs.stage_3_issues != 'REPLACE_STAGE_3_ISSUES' && github.event.inputs.stage_3_issues != '[]' }}
+    strategy:
+      matrix:
+        issue: ${{ fromJson(github.event.inputs.stage_3_issues) }}
+      max-parallel: 10
+    steps:
+      - name: Assign Copilot to Issue ${{ matrix.issue }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            console.log(`Assigning @copilot to issue #${issueNumber}`);
+            
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: ['copilot']
+              });
+              console.log(`Successfully assigned @copilot to issue #${issueNumber}`);
+            } catch (error) {
+              console.error(`Failed to assign @copilot to issue #${issueNumber}: ${error.message}`);
+              throw error;
+            }
+
+      - name: Wait for Issue Resolution
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+            const checkInterval = 30 * 1000; // 30 seconds
+            const startTime = Date.now();
+            
+            console.log(`Waiting for issue #${issueNumber} to be closed...`);
+            
+            while (Date.now() - startTime < maxWaitTime) {
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+              
+              if (issue.state === 'closed') {
+                console.log(`Issue #${issueNumber} has been closed!`);
+                return;
+              }
+              
+              console.log(`Issue #${issueNumber} is still open. Waiting...`);
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
+            }
+            
+            throw new Error(`Timeout: Issue #${issueNumber} was not closed within 30 minutes`);
+
+  stage-4:
+    name: Process Stage 4 Issues
+    runs-on: ubuntu-latest
+    needs: stage-3
+    if: ${{ always() && github.event.inputs.stage_4_issues != 'REPLACE_STAGE_4_ISSUES' && github.event.inputs.stage_4_issues != '[]' }}
+    strategy:
+      matrix:
+        issue: ${{ fromJson(github.event.inputs.stage_4_issues) }}
+      max-parallel: 10
+    steps:
+      - name: Assign Copilot to Issue ${{ matrix.issue }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            console.log(`Assigning @copilot to issue #${issueNumber}`);
+            
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: ['copilot']
+              });
+              console.log(`Successfully assigned @copilot to issue #${issueNumber}`);
+            } catch (error) {
+              console.error(`Failed to assign @copilot to issue #${issueNumber}: ${error.message}`);
+              throw error;
+            }
+
+      - name: Wait for Issue Resolution
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issueNumber = ${{ matrix.issue }};
+            const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+            const checkInterval = 30 * 1000; // 30 seconds
+            const startTime = Date.now();
+            
+            console.log(`Waiting for issue #${issueNumber} to be closed...`);
+            
+            while (Date.now() - startTime < maxWaitTime) {
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber
+              });
+              
+              if (issue.state === 'closed') {
+                console.log(`Issue #${issueNumber} has been closed!`);
+                return;
+              }
+              
+              console.log(`Issue #${issueNumber} is still open. Waiting...`);
+              await new Promise(resolve => setTimeout(resolve, checkInterval));
+            }
+            
+            throw new Error(`Timeout: Issue #${issueNumber} was not closed within 30 minutes`);
+
+  summary:
+    name: Orchestration Summary
+    runs-on: ubuntu-latest
+    needs: [stage-1, stage-2, stage-3, stage-4]
+    if: always()
+    steps:
+      - name: Report Results
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log('Orchestration workflow completed');
+            console.log('Stage 1:', '${{ needs.stage-1.result }}');
+            console.log('Stage 2:', '${{ needs.stage-2.result }}');
+            console.log('Stage 3:', '${{ needs.stage-3.result }}');
+            console.log('Stage 4:', '${{ needs.stage-4.result }}');

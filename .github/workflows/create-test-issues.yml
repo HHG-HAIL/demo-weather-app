@@ -1,0 +1,167 @@
+name: Create Test Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test to create issues for'
+        required: true
+        type: choice
+        options:
+          - unit
+          - smoke
+          - integration
+          - all
+      component:
+        description: 'Component/file to test (leave empty for all)'
+        required: false
+        default: ''
+      auto_assign:
+        description: 'Automatically assign to @copilot'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  create-issues:
+    name: Create Test Issues
+    runs-on: ubuntu-latest
+    outputs:
+      issue_numbers: ${{ steps.create.outputs.issue_numbers }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Test Issues
+        id: create
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const testType = '${{ github.event.inputs.test_type }}';
+            const component = '${{ github.event.inputs.component }}';
+            const autoAssign = '${{ github.event.inputs.auto_assign }}' === 'true';
+            
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read source files
+            const srcDir = './src';
+            let files = [];
+            
+            if (component) {
+              files = [component];
+            } else {
+              // Get all JS/JSX files in src
+              const getAllFiles = (dirPath, arrayOfFiles = []) => {
+                const filesInDir = fs.readdirSync(dirPath);
+                
+                filesInDir.forEach((file) => {
+                  const filePath = path.join(dirPath, file);
+                  if (fs.statSync(filePath).isDirectory()) {
+                    arrayOfFiles = getAllFiles(filePath, arrayOfFiles);
+                  } else if (/\.(js|jsx|ts|tsx)$/.test(file)) {
+                    arrayOfFiles.push(filePath.replace('./', ''));
+                  }
+                });
+                
+                return arrayOfFiles;
+              };
+              
+              files = getAllFiles(srcDir);
+            }
+            
+            const issueNumbers = [];
+            
+            // Create issues based on test type
+            const createIssue = async (type, file) => {
+              let title, body, labels;
+              
+              if (type === 'unit') {
+                title = `[Unit Tests] ${file}`;
+                body = `## Description
+            Create unit tests for \`${file}\`.
+            
+            ## Requirements
+            - Framework: Vitest or Jest
+            - Coverage: ≥80%
+            - Include: Happy path, edge cases, error handling
+            - Mock external dependencies
+            - Use AAA pattern (Arrange-Act-Assert)
+            
+            ## Test File Location
+            \`tests/${file.replace(/\.(js|jsx|ts|tsx)$/, '.test.$1')}\` or \`__tests__/${file.replace(/\.(js|jsx|ts|tsx)$/, '.test.$1')}\``;
+                labels = ['testing', 'unit-tests'];
+              } else if (type === 'smoke') {
+                title = `[Smoke Tests] ${file}`;
+                body = `## Description
+            Create smoke tests for \`${file}\` to verify it loads without crashing.
+            
+            ## Requirements
+            - Framework: Vitest + Testing Library or Playwright
+            - Verify: Component renders, no console errors, key UI elements visible
+            - Fast execution: < 5 seconds total
+            - Location: \`tests/smoke/\`
+            
+            ## Critical Components
+            - ${file}`;
+                labels = ['testing', 'smoke-tests'];
+              } else if (type === 'integration') {
+                title = `[Integration Tests] ${file}`;
+                body = `## Description
+            Create integration tests for \`${file}\` to validate multi-module interactions.
+            
+            ## Requirements
+            - Framework: Vitest or Playwright
+            - Mock external APIs (use MSW for HTTP)
+            - Test both success and failure paths
+            - Use AAA pattern (Arrange-Act-Assert)
+            - Location: \`tests/integration/\`
+            
+            ## Flow to Test
+            - User interactions and module integration for ${file}
+            
+            ## Modules Involved
+            - ${file} and its dependencies`;
+                labels = ['testing', 'integration-tests'];
+              }
+              
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: labels,
+                assignees: autoAssign ? ['copilot'] : []
+              });
+              
+              console.log(`Created issue #${issue.data.number}: ${title}`);
+              return issue.data.number;
+            };
+            
+            // Create issues for each file
+            for (const file of files) {
+              if (testType === 'all') {
+                for (const type of ['unit', 'smoke', 'integration']) {
+                  const issueNum = await createIssue(type, file);
+                  issueNumbers.push(issueNum);
+                }
+              } else {
+                const issueNum = await createIssue(testType, file);
+                issueNumbers.push(issueNum);
+              }
+            }
+            
+            core.setOutput('issue_numbers', JSON.stringify(issueNumbers));
+            console.log(`Created ${issueNumbers.length} issues: ${issueNumbers.join(', ')}`);
+
+      - name: Summary
+        run: |
+          echo "### Test Issues Created :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Issue numbers: ${{ steps.create.outputs.issue_numbers }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Next steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review the created issues" >> $GITHUB_STEP_SUMMARY
+          echo "2. Update \`.github/workflows/orchestrate-tests.yml\` with issue numbers" >> $GITHUB_STEP_SUMMARY
+          echo "3. Run the orchestration workflow to process issues" >> $GITHUB_STEP_SUMMARY
