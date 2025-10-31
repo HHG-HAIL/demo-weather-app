@@ -1,0 +1,171 @@
+name: Copilot Task Orchestration
+# TEMPLATE: AI will replace REPLACE_XXX placeholders with actual issue numbers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # STAGE 1: First batch of issues (run in parallel, no dependencies)
+  # These issues can be worked on simultaneously without conflicts
+  stage-1:
+    name: "Stage 1 - Issue #${{ matrix.issue }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # REPLACE_STAGE_1: AI replaces this with actual issue numbers that can run in parallel
+        # Example: issue: [19, 20, 21]
+        issue: [31, 32, 33]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assign to Copilot & Wait for PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/issues/${{ matrix.issue }}/assignees \
+            -f "assignees[]=copilot-swe-agent" || echo "⚠️ Assignment failed, continuing..."
+          
+          # Wait up to 30 minutes for PR creation
+          for i in {1..60}; do
+            pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
+            if [ ! -z "$pr" ]; then
+              echo "✅ PR #$pr created for issue #${{ matrix.issue }}"
+              echo "⏳ Waiting for checks to complete..."
+              gh pr checks $pr --watch --interval 30 || true
+              echo "✅ Stage 1 issue #${{ matrix.issue }} complete"
+              exit 0
+            fi
+            echo "⏳ Waiting for PR... ($i/60)"
+            sleep 30
+          done
+          echo "⚠️ Timeout waiting for PR"
+
+  # STAGE 2: Second batch (runs AFTER stage-1 completes, parallel within stage)
+  # These issues depend on stage-1 being merged to avoid conflicts
+  stage-2:
+    name: "Stage 2 - Issue #${{ matrix.issue }}"
+    runs-on: ubuntu-latest
+    needs: stage-1  # Wait for all stage-1 jobs to complete
+    if: always()     # Run even if some stage-1 jobs fail
+    strategy:
+      matrix:
+        # REPLACE_STAGE_2: AI replaces this with issue numbers for stage 2
+        # Example: issue: [23, 24]
+        # Use empty array [] if no stage-2 issues
+        issue: [34, 35]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assign to Copilot & Wait for PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
+          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
+          
+          for i in {1..60}; do
+            pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
+            if [ ! -z "$pr" ]; then
+              echo "✅ PR #$pr created for issue #${{ matrix.issue }}"
+              gh pr checks $pr --watch --interval 30 || true
+              echo "✅ Stage 2 issue #${{ matrix.issue }} complete"
+              exit 0
+            fi
+            echo "⏳ Waiting for PR... ($i/60)"
+            sleep 30
+          done
+          echo "⚠️ Timeout waiting for PR"
+
+  # STAGE 3: Third batch (runs AFTER stage-2 completes, parallel within stage)
+  stage-3:
+    name: "Stage 3 - Issue #${{ matrix.issue }}"
+    runs-on: ubuntu-latest
+    needs: stage-2  # Wait for all stage-2 jobs to complete
+    if: always()
+    strategy:
+      matrix:
+        # REPLACE_STAGE_3: AI replaces this with issue numbers for stage 3
+        # Example: issue: [22]
+        # Use empty array [] if no stage-3 issues
+        issue: [36]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assign to Copilot & Wait for PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
+          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
+          
+          for i in {1..60}; do
+            pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
+            if [ ! -z "$pr" ]; then
+              echo "✅ PR #$pr created for issue #${{ matrix.issue }}"
+              gh pr checks $pr --watch --interval 30 || true
+              echo "✅ Stage 3 issue #${{ matrix.issue }} complete"
+              exit 0
+            fi
+            echo "⏳ Waiting for PR... ($i/60)"
+            sleep 30
+          done
+          echo "⚠️ Timeout waiting for PR"
+
+  # STAGE 4: Final batch (runs AFTER stage-3 completes, parallel within stage)
+  # NOTE: This stage is currently disabled (no issues assigned)
+  # To enable: Replace the empty array with issue numbers like [25, 26]
+  stage-4:
+    name: "Stage 4 - Issue #${{ matrix.issue }}"
+    runs-on: ubuntu-latest
+    needs: stage-3  # Wait for all stage-3 jobs to complete
+    if: false  # Disabled when no stage-4 issues exist
+    strategy:
+      matrix:
+        # REPLACE_STAGE_4: AI replaces this with issue numbers for stage 4
+        # Example: issue: [25, 26]
+        # Use empty array [] if no stage-4 issues
+        issue: [0]  # Placeholder (job is disabled via if: false)
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assign to Copilot & Wait for PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🤖 Assigning issue #${{ matrix.issue }} to Copilot..."
+          gh issue edit ${{ matrix.issue }} --add-assignee "@copilot"
+          
+          for i in {1..60}; do
+            pr=$(gh pr list --search "Fixes #${{ matrix.issue }}" --state open --json number --jq '.[0].number' || echo "")
+            if [ ! -z "$pr" ]; then
+              echo "✅ PR #$pr created for issue #${{ matrix.issue }}"
+              gh pr checks $pr --watch --interval 30 || true
+              echo "✅ Stage 4 issue #${{ matrix.issue }} complete"
+              exit 0
+            fi
+            echo "⏳ Waiting for PR... ($i/60)"
+            sleep 30
+          done
+          echo "⚠️ Timeout waiting for PR"
+
+  # Summary report
+  summary:
+    name: "Generate Summary"
+    runs-on: ubuntu-latest
+    needs: [stage-1, stage-2, stage-3, stage-4]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "# 🎉 Orchestration Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## PRs Created" >> $GITHUB_STEP_SUMMARY
+          gh pr list --limit 20 --json number,title,url,state --jq '.[] | "- [\(.state)] [#\(.number)](\(.url)) - \(.title)"' >> $GITHUB_STEP_SUMMARY || echo "No PRs found"

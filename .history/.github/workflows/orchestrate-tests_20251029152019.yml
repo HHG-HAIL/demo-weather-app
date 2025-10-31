@@ -1,0 +1,16 @@
+name: Test Copilot PAT
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify token works
+        env:
+          TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          curl -H "Authorization: bearer $TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"query":"{ viewer { login } }"}' \
+               https://api.github.com/graphql

@@ -1,0 +1,29 @@
+name: Assign Copilot Agent to Issue
+
+on:
+  workflow_dispatch:
+
+jobs:
+  assign-agent:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Assign Copilot Agent
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISSUE_NUMBER="31"
+          
+          echo "🤖 Assigning Copilot agent to issue #$ISSUE_NUMBER"
+          
+          # Assign the agent
+          gh copilot agent add $ISSUE_NUMBER
+          
+          echo "✅ Agent assigned successfully!"

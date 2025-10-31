@@ -1,0 +1,100 @@
+name: Assign Copilot to Issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to assign'
+        required: true
+        default: '31'
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    
+    steps:
+      - name: Assign Copilot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISSUE_NUMBER="${{ inputs.issue_number }}"
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          
+          echo "🤖 Assigning Copilot to issue #$ISSUE_NUMBER"
+          
+          # Step 1: Check all suggested actors
+          echo "Checking suggested actors..."
+          gh api graphql -f query='
+          query {
+            repository(owner: "'"$OWNER"'", name: "'"$REPO"'") {
+              suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                nodes {
+                  login
+                  __typename
+                  ... on Bot { id }
+                  ... on User { id }
+                }
+              }
+            }
+          }' --jq '.data.repository.suggestedActors.nodes'
+          
+          # Get Bot ID
+          BOT_ID=$(gh api graphql -f query='
+          query {
+            repository(owner: "'"$OWNER"'", name: "'"$REPO"'") {
+              suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                nodes {
+                  login
+                  ... on Bot { id }
+                }
+              }
+            }
+          }' --jq '.data.repository.suggestedActors.nodes[] | select(.login=="copilot-swe-agent") | .id')
+          
+          if [ -z "$BOT_ID" ]; then
+            echo "❌ Error: copilot-swe-agent not found in suggested actors"
+            echo "This usually means:"
+            echo "  1. Copilot is not enabled for this repository"
+            echo "  2. Or you need to enable Copilot coding agent in repo settings"
+            exit 1
+          fi
+          
+          echo "✓ Bot ID: $BOT_ID"
+          
+          # Step 2: Get Issue ID
+          ISSUE_ID=$(gh api graphql -f query='
+          query {
+            repository(owner: "'"$OWNER"'", name: "'"$REPO"'") {
+              issue(number: '$ISSUE_NUMBER') {
+                id
+              }
+            }
+          }' --jq '.data.repository.issue.id')
+          
+          echo "✓ Issue ID: $ISSUE_ID"
+          
+          # Step 3: Assign Copilot
+          gh api graphql -f query='
+          mutation {
+            addAssigneesToAssignable(input: {
+              assignableId: "'"$ISSUE_ID"'",
+              assigneeIds: ["'"$BOT_ID"'"]
+            }) {
+              assignable {
+                ... on Issue {
+                  title
+                  assignees(first: 10) {
+                    nodes {
+                      login
+                    }
+                  }
+                }
+              }
+            }
+          }'
+          
+          echo "✅ Copilot assigned successfully!"

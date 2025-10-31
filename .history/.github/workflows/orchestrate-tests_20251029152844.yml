@@ -1,0 +1,21 @@
+name: Test Copilot PAT
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify token works
+        env:
+          TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          curl -H "Authorization: bearer $TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"query":"{ viewer { login } }"}' \
+               https://api.github.com/graphql
+      
+      - name: Assign Copilot to Issue
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_PAT }}
+        run: |
+          gh issue edit 31 --add-assignee copilot-swe-agent --repo ${{ github.repository }}

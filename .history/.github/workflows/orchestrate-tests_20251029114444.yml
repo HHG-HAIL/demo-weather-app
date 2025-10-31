@@ -1,0 +1,284 @@
+name: Copilot Task Orchestration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # STAGE 1: Unit Tests (run in parallel)
+  stage-1:
+    name: "Stage 1 - Issue #${{ matrix.issue }}"
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    strategy:
+      matrix:
+        issue: [31, 32, 33]
+      fail-fast: false
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Assign Copilot to Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ matrix.issue }}
+        run: |
+          echo "🤖 Assigning Copilot to issue #$ISSUE_NUMBER"
+          
+          # Get Bot ID for copilot-swe-agent
+          BOT_ID=$(gh api graphql -f query='
+            query {
+              repository(owner: "${{ github.repository_owner }}", name: "${{ github.event.repository.name }}") {
+                suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                  nodes {
+                    login
+                    ... on Bot { id }
+                  }
+                }
+              }
+            }' --jq '.data.repository.suggestedActors.nodes[] | select(.login=="copilot-swe-agent") | .id')
+          
+          echo "Bot ID: $BOT_ID"
+          
+          # Get Issue ID
+          ISSUE_ID=$(gh api graphql -f query='
+            query {
+              repository(owner: "${{ github.repository_owner }}", name: "${{ github.event.repository.name }}") {
+                issue(number: '$ISSUE_NUMBER') {
+                  id
+                }
+              }
+            }' --jq '.data.repository.issue.id')
+          
+          echo "Issue ID: $ISSUE_ID"
+          
+          # Assign Copilot to the issue
+          gh api graphql -f query='
+            mutation {
+              addAssigneesToAssignable(input: {assignableId: "'"$ISSUE_ID"'", assigneeIds: ["'"$BOT_ID"'"]}) {
+                assignable {
+                  ... on Issue {
+                    id
+                    title
+                    assignees(first: 10) {
+                      nodes {
+                        login
+                      }
+                    }
+                  }
+                }
+              }
+            }'
+          
+          echo "✅ Copilot assigned to issue #$ISSUE_NUMBER"
+      
+      - name: Wait for PR Creation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ matrix.issue }}
+        run: |
+          echo "⏳ Waiting for Copilot to create PR..."
+          
+          for i in {1..60}; do
+            pr=$(gh pr list --search "closes #$ISSUE_NUMBER" --state open --json number --jq '.[0].number' || echo "")
+            if [ ! -z "$pr" ]; then
+              echo "✅ PR #$pr created for issue #$ISSUE_NUMBER"
+              echo "⏳ Waiting for checks to complete..."
+              gh pr checks $pr --watch --interval 30 || true
+              echo "✅ Stage 1 issue #$ISSUE_NUMBER complete"
+              exit 0
+            fi
+            echo "⏳ Still waiting... ($i/60)"
+            sleep 30
+          done
+          
+          echo "⚠️ Timeout: No PR created after 30 minutes"
+  
+  # STAGE 2: Integration Tests (after Stage 1)
+  stage-2:
+    name: "Stage 2 - Issue #${{ matrix.issue }}"
+    runs-on: ubuntu-latest
+    needs: stage-1
+    if: always()
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    strategy:
+      matrix:
+        issue: [34, 35]
+      fail-fast: false
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Assign Copilot to Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ matrix.issue }}
+        run: |
+          echo "🤖 Assigning Copilot to issue #$ISSUE_NUMBER"
+          
+          BOT_ID=$(gh api graphql -f query='
+            query {
+              repository(owner: "${{ github.repository_owner }}", name: "${{ github.event.repository.name }}") {
+                suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                  nodes {
+                    login
+                    ... on Bot { id }
+                  }
+                }
+              }
+            }' --jq '.data.repository.suggestedActors.nodes[] | select(.login=="copilot-swe-agent") | .id')
+          
+          ISSUE_ID=$(gh api graphql -f query='
+            query {
+              repository(owner: "${{ github.repository_owner }}", name: "${{ github.event.repository.name }}") {
+                issue(number: '$ISSUE_NUMBER') {
+                  id
+                }
+              }
+            }' --jq '.data.repository.issue.id')
+          
+          gh api graphql -f query='
+            mutation {
+              addAssigneesToAssignable(input: {assignableId: "'"$ISSUE_ID"'", assigneeIds: ["'"$BOT_ID"'"]}) {
+                assignable {
+                  ... on Issue {
+                    id
+                    title
+                  }
+                }
+              }
+            }'
+          
+          echo "✅ Copilot assigned to issue #$ISSUE_NUMBER"
+      
+      - name: Wait for PR Creation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ matrix.issue }}
+        run: |
+          echo "⏳ Waiting for Copilot to create PR..."
+          
+          for i in {1..60}; do
+            pr=$(gh pr list --search "closes #$ISSUE_NUMBER" --state open --json number --jq '.[0].number' || echo "")
+            if [ ! -z "$pr" ]; then
+              echo "✅ PR #$pr created for issue #$ISSUE_NUMBER"
+              gh pr checks $pr --watch --interval 30 || true
+              echo "✅ Stage 2 issue #$ISSUE_NUMBER complete"
+              exit 0
+            fi
+            echo "⏳ Still waiting... ($i/60)"
+            sleep 30
+          done
+          
+          echo "⚠️ Timeout: No PR created after 30 minutes"
+  
+  # STAGE 3: Smoke Tests (after Stage 2)
+  stage-3:
+    name: "Stage 3 - Issue #${{ matrix.issue }}"
+    runs-on: ubuntu-latest
+    needs: stage-2
+    if: always()
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    strategy:
+      matrix:
+        issue: [36]
+      fail-fast: false
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Assign Copilot to Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ matrix.issue }}
+        run: |
+          echo "🤖 Assigning Copilot to issue #$ISSUE_NUMBER"
+          
+          BOT_ID=$(gh api graphql -f query='
+            query {
+              repository(owner: "${{ github.repository_owner }}", name: "${{ github.event.repository.name }}") {
+                suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                  nodes {
+                    login
+                    ... on Bot { id }
+                  }
+                }
+              }
+            }' --jq '.data.repository.suggestedActors.nodes[] | select(.login=="copilot-swe-agent") | .id')
+          
+          ISSUE_ID=$(gh api graphql -f query='
+            query {
+              repository(owner: "${{ github.repository_owner }}", name: "${{ github.event.repository.name }}") {
+                issue(number: '$ISSUE_NUMBER') {
+                  id
+                }
+              }
+            }' --jq '.data.repository.issue.id')
+          
+          gh api graphql -f query='
+            mutation {
+              addAssigneesToAssignable(input: {assignableId: "'"$ISSUE_ID"'", assigneeIds: ["'"$BOT_ID"'"]}) {
+                assignable {
+                  ... on Issue {
+                    id
+                    title
+                  }
+                }
+              }
+            }'
+          
+          echo "✅ Copilot assigned to issue #$ISSUE_NUMBER"
+      
+      - name: Wait for PR Creation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ matrix.issue }}
+        run: |
+          echo "⏳ Waiting for Copilot to create PR..."
+          
+          for i in {1..60}; do
+            pr=$(gh pr list --search "closes #$ISSUE_NUMBER" --state open --json number --jq '.[0].number' || echo "")
+            if [ ! -z "$pr" ]; then
+              echo "✅ PR #$pr created for issue #$ISSUE_NUMBER"
+              gh pr checks $pr --watch --interval 30 || true
+              echo "✅ Stage 3 issue #$ISSUE_NUMBER complete"
+              exit 0
+            fi
+            echo "⏳ Still waiting... ($i/60)"
+            sleep 30
+          done
+          
+          echo "⚠️ Timeout: No PR created after 30 minutes"
+  
+  # Summary Report
+  summary:
+    name: "Generate Summary"
+    runs-on: ubuntu-latest
+    needs: [stage-1, stage-2, stage-3]
+    if: always()
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Generate Summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "# 🎉 Test Orchestration Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## PRs Created" >> $GITHUB_STEP_SUMMARY
+          gh pr list --limit 20 --json number,title,url,state --jq '.[] | "- [\(.state)] [#\(.number)](\(.url)) - \(.title)"' >> $GITHUB_STEP_SUMMARY || echo "No PRs found"
